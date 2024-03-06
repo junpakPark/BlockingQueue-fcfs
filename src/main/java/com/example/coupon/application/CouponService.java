@@ -1,39 +1,26 @@
 package com.example.coupon.application;
 
 import com.example.coupon.domain.Coupon;
+import com.example.coupon.domain.CouponQueueHandler;
 import com.example.coupon.domain.CouponRepository;
-import jakarta.annotation.PostConstruct;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 @Service
 public class CouponService {
 
     private final CouponRepository couponRepository;
-    private final BlockingQueue<Coupon> queue = new LinkedBlockingQueue<>();
+    private final CouponQueueHandler couponQueueHandler;
 
     private final AtomicInteger couponCount = new AtomicInteger();
 
-    public CouponService(final CouponRepository couponRepository) {
+    public CouponService(
+            final CouponRepository couponRepository,
+            final CouponQueueHandler couponQueueHandler
+    ) {
         this.couponRepository = couponRepository;
-    }
-
-    @PostConstruct
-    @Transactional
-    public void consume() {
-        new Thread(() -> {
-            while (true) {
-                try {
-                    Coupon coupon = queue.take();
-                    couponRepository.save(coupon);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }).start();
+        this.couponQueueHandler = couponQueueHandler;
     }
 
 
@@ -44,11 +31,7 @@ public class CouponService {
             throw new IllegalArgumentException("쿠폰 발행갯수를 초과하였습니다.");
         }
 
-        try {
-            queue.put(new Coupon(userId));
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        couponQueueHandler.produce(new Coupon(userId));
     }
 
     @Transactional(readOnly = true)
