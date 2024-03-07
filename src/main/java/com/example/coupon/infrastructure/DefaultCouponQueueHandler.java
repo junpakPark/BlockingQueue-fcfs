@@ -19,8 +19,17 @@ public class DefaultCouponQueueHandler implements CouponQueueHandler {
         this.couponBatchRepository = couponBatchRepository;
     }
 
+    @Override
+    public void produce(Coupon coupon) {
+        try {
+            queue.put(coupon);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @PostConstruct
-    public void consume() {
+    private void consume() {
         new Thread(() -> {
             while (true) {
                 try {
@@ -38,14 +47,6 @@ public class DefaultCouponQueueHandler implements CouponQueueHandler {
                 }
             }
         }).start();
-    }
-
-    public void produce(Coupon coupon) {
-        try {
-            queue.put(coupon);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private List<Coupon> extractUniqueCoupons() {
