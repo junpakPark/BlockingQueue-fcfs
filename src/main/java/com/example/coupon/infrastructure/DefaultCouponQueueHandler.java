@@ -24,7 +24,7 @@ public class DefaultCouponQueueHandler implements CouponQueueHandler {
         new Thread(() -> {
             while (true) {
                 try {
-                    if (queue.size() < 100) {
+                    if (queue.isEmpty()) {
                         Thread.sleep(50);
                         continue;
                     }
